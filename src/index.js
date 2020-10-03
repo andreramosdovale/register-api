@@ -27,9 +27,9 @@ module.exports = app => {
             ];
 
             if (!UNCHECKED_PATHS.includes(req.path) && CHECKED_METHODS.includes(req.method)) {
-                jwt.verify(req.headers.authorization, async function(err, decoded) {
+                jwt.verify(req.headers.authorization, async function(err) {
                     if (err) {
-                        throw err;
+                        throw err
                     }
                     await UserModel.getUser({
                         'token': req.headers.authorization
@@ -38,16 +38,16 @@ module.exports = app => {
                         if (objeto) {
                             next()
                         } else {
-                            throw 'Login ou senha incorretos.';
+                            throw 'Login ou senha incorretos.'
                         }
-                    });
-                });
+                    })
+                })
             } else {
-                next();
+                next()
             }
         } catch(err) {
             console.log(err);
-            return res.status(403).send(err)
+            return res.statusCode.send(err)
         }
     });
 }

@@ -33,8 +33,13 @@ class UserModel {
 
         app.db('users')
             .insert(query)
-            .then()
-            .catch()
+            .then(id => {
+                return id
+            })
+            .catch(err => {
+                app.db.destroy()
+                console.error(err)
+            })
     }
 
     static getUserLogin = async function (login) {
@@ -44,7 +49,8 @@ class UserModel {
             .then(data => {
                 return data[0]
             }).catch(err => {
-                return err
+                app.db.destroy()
+                console.error(err)
             })
     }
 
@@ -55,7 +61,8 @@ class UserModel {
             .then(data => {
                 return data[0]
             }).catch(err => {
-                return err
+                app.db.destroy()
+                console.error(err)
             })
     }
 
@@ -66,7 +73,8 @@ class UserModel {
             .then(data => {
                 return data[0]
             }).catch(err => {
-                return err
+                app.db.destroy()
+                console.error(err)
             })
     }
 
@@ -76,6 +84,20 @@ class UserModel {
         const decryptDataBasePassword = UserModel.decryptPassword(encryptDataBasePassword.password)
 
         return decryptLoginPassword === decryptDataBasePassword
+    }
+
+    static deleteUser = async function (token) {
+        const user = await UserModel.getUser(token)
+
+        return await app.db('users')
+            .where({login: user.login})
+            .del()
+            .then(data => {
+                return data[0]
+            }).catch(err => {
+                app.db.destroy()
+                console.error(err)
+            })
     }
 
     static generateToken = async function (data) {
@@ -88,8 +110,11 @@ class UserModel {
         return await app.db('users')
             .update({token: token})
             .where({login: login})
-            .then(() => {})
+            .then(id => {
+                return id
+            })
             .catch(err => {
+                app.db.destroy()
                 console.error(err)
             })
     }
@@ -98,23 +123,26 @@ class UserModel {
         return await app.db('users')
             .update({token: ''})
             .where({login: login})
-            .then(() => {})
+            .then(id => {
+                return id
+            })
             .catch(err => {
+                app.db.destroy()
                 console.error(err)
             })
     }
 
     static checkToken = function(token) {
-        let decodedToken = jwt.verify(token, authSecret);
+        let decodedToken = jwt.verify(token, authSecret)
 
         return new Promise((resolve, reject) => {
             if (decodedToken) {
-                resolve(decodedToken);
+                resolve(decodedToken)
             } else {
-                reject(decodedToken);
+                reject(decodedToken)
             }
-        });
-    };
+        })
+    }
 
 }
 
