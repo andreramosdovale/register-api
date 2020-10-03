@@ -59,9 +59,8 @@ class UserModel {
             })
     }
 
-    static validatePassword = async function (user) {
-        const decryptLoginPassword = await UserModel.decryptPassword(user.password)
-        const encryptDataBasePassword = await app.db('users')
+    static getEncryptDataBasePassword = async function (user) {
+        return await app.db('users')
             .select('password')
             .where({login: user.login})
             .then(data => {
@@ -69,16 +68,19 @@ class UserModel {
             }).catch(err => {
                 return err
             })
+    }
+
+    static validatePassword = async function (user) {
+        const decryptLoginPassword = await UserModel.decryptPassword(user.password)
+        const encryptDataBasePassword = await UserModel.getEncryptDataBasePassword(user)
         const decryptDataBasePassword = UserModel.decryptPassword(encryptDataBasePassword.password)
 
         return decryptLoginPassword === decryptDataBasePassword
     }
 
     static generateToken = async function (data) {
-        let login = data.login
-
         return jwt.sign({
-            login: login,
+            login: data.login,
         }, authSecret, { expiresIn: '1h' })
     }
 
