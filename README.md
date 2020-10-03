@@ -39,6 +39,7 @@
             </li>
         </ul>
     </li>
+    <li>Dentro da pasta scr/components/Mailer.js você deve preencher as metodos de "transporter" e "sendEmail" com seus dados de email</li>
     <li>Utilize o comando abaixo para rodar a aplicação
         <ul>
             <li>npm start</li>
