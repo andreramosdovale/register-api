@@ -13,8 +13,8 @@ express_app.use(express.static('../public'));
 
 express_app.post('/register', async (req, res) => {
     let login = req.body.login
-    let senha = req.body.password
-    let encrypted_password = await UserModel.encryptPassword(senha)
+    let password = req.body.password
+    let encrypted_password = await UserModel.encryptPassword(password)
     // let decrypted_password = await UserModel.decryptPassword(encrypted_password);
     // return res.send(`senha encriptada => ${encrypted_password} || senha decriptada => ${decrypted_password}`);
 
@@ -34,8 +34,8 @@ express_app.post('/register', async (req, res) => {
 
 express_app.post('/login', async (req, res) => {
     let login = req.body.login
-    let senha = req.body.password
-    let encrypted_password = UserModel.encryptPassword(senha)
+    let password = req.body.password
+    let encrypted_password = UserModel.encryptPassword(password)
 
     let userModel = await UserModel.getUserLogin(login, encrypted_password)
         .then(data => {
@@ -60,19 +60,37 @@ express_app.post('/login', async (req, res) => {
 
 express_app.post('/logout', async (req, res) => {
     let token = req.headers.authorization
-    let login = req.body.login
+
+    let userModel = UserModel.removeToken(token)
+        .then(object => {
+            let response = new DefaultResponse(
+                false, {}, 'LogoutResponse', 200
+            )
+            return res.status(response.status).send(response);
+        })
+        .catch(err => {
+            let response = new DefaultResponse(
+                true, 'Internal Server Error.', 'LoginException', 500);
+            return res.status(response.status).send(response);
+        })
+})
+
+express_app.post('/updateUser', async (req, res) => {
+    let token = req.headers.authorization
+    let newLogin = req.body.login
+    let newPassword = UserModel.encryptPassword(req.body.password)
 
     await jwt.verify(token, authSecret, function (err, decoded) {
-        let userModel = UserModel.removeToken(token, login)
+        let userModel = UserModel.updateUser(token, newLogin, newPassword)
             .then(object => {
                 let response = new DefaultResponse(
-                    false, {}, 'LogoutResponse', 200
+                    false, {}, 'UpdateResponse', 200
                 )
                 return res.status(response.status).send(response);
             })
             .catch(err => {
                 let response = new DefaultResponse(
-                    true, 'Internal Server Error.', 'LoginException', 500);
+                    true, 'Internal Server Error.', 'UpdateException', 500);
                 return res.status(response.status).send(response);
             })
     })
@@ -85,13 +103,13 @@ express_app.post('/deleteUser', async (req, res) => {
         let userModel = UserModel.deleteUser(token)
             .then(object => {
                 let response = new DefaultResponse(
-                    false, {}, 'LogoutResponse', 200
+                    false, {}, 'DeleteResponse', 200
                 )
                 return res.status(response.status).send(response);
             })
             .catch(err => {
                 let response = new DefaultResponse(
-                    true, 'Internal Server Error.', 'LoginException', 500);
+                    true, 'Internal Server Error.', 'DeleteException', 500);
                 return res.status(response.status).send(response);
             })
     })

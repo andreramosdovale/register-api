@@ -100,6 +100,23 @@ class UserModel {
             })
     }
 
+    static updateUser = async function (token, newLogin, newPassword) {
+        const user = await UserModel.getUser(token)
+
+        return await app.db('users')
+            .update({
+                login: newLogin,
+                password: newPassword
+            })
+            .where({login: user.login})
+            .then(data => {
+                return data[0]
+            }).catch(err => {
+                app.db.destroy()
+                console.error(err)
+            })
+    }
+
     static generateToken = async function (data) {
         return jwt.sign({
             login: data.login,
@@ -119,10 +136,12 @@ class UserModel {
             })
     }
 
-    static removeToken = async function(token, login) {
+    static removeToken = async function(token) {
+        const user = await UserModel.getUser(token)
+
         return await app.db('users')
             .update({token: ''})
-            .where({login: login})
+            .where({login: user.login})
             .then(id => {
                 return id
             })
