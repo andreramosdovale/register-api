@@ -12,13 +12,13 @@ const express_app = express()
 express_app.use(express.static('../public'));
 
 express_app.post('/register', async (req, res) => {
-    let login = req.body.login
+    let email = req.body.email
     let password = req.body.password
     let encrypted_password = await UserModel.encryptPassword(password)
     // let decrypted_password = await UserModel.decryptPassword(encrypted_password);
     // return res.send(`senha encriptada => ${encrypted_password} || senha decriptada => ${decrypted_password}`);
 
-    let userModel = await UserModel.registerUser(login, encrypted_password)
+    let userModel = await UserModel.registerUser(email, encrypted_password)
         .then(object => {
             let response = new DefaultResponse(
                 false, {object}, 'RegisterResponse', 200
@@ -33,17 +33,17 @@ express_app.post('/register', async (req, res) => {
 })
 
 express_app.post('/login', async (req, res) => {
-    let login = req.body.login
+    let email = req.body.email
     let password = req.body.password
     let encrypted_password = UserModel.encryptPassword(password)
 
-    let userModel = await UserModel.getUserLogin(login, encrypted_password)
+    let userModel = await UserModel.getUserEmail(email, encrypted_password)
         .then(data => {
             UserModel.validatePassword(data)
                 .then(data => {
                     let token = UserModel.generateToken(data)
                         .then(token => {
-                            UserModel.addToken(token, login)
+                            UserModel.addToken(token, email)
                             let response = new DefaultResponse(
                                 false, {token}, 'LoginResponse', 200
                             )
@@ -77,11 +77,11 @@ express_app.post('/logout', async (req, res) => {
 
 express_app.post('/updateUser', async (req, res) => {
     let token = req.headers.authorization
-    let newLogin = req.body.login
+    let newEmail = req.body.email
     let newPassword = UserModel.encryptPassword(req.body.password)
 
     await jwt.verify(token, authSecret, function (err, decoded) {
-        let userModel = UserModel.updateUser(token, newLogin, newPassword)
+        let userModel = UserModel.updateUserByToken(token, newEmail, newPassword)
             .then(object => {
                 let response = new DefaultResponse(
                     false, {}, 'UpdateResponse', 200
@@ -133,6 +133,30 @@ express_app.post('/getUser', async (req, res) => {
                 return res.status(response.status).send(response)
             })
     })
+})
+
+express_app.post('/resetPassword', async (req, res) => {
+    let email = req.body.email
+
+    let userModel = await UserModel.generateNewRandomPassword()
+        .then(object => {
+            UserModel.updateRandomPassword(email, object)
+                .then(data => {
+                    UserModel.sendEmail(email)
+                    let response = new DefaultResponse(
+                        false, {data}, 'ResetPasswordResponse', 200
+                    )
+                    return res.status(response.status).send(response);
+                })
+                .catch(err => {
+                    console.error(err)
+                })
+        })
+        .catch(err => {
+            let response = new DefaultResponse(
+                true, 'Internal Server Error.', 'ResetPasswordException', 500);
+            return res.status(response.status).send(response)
+        })
 })
 
 module.exports = app => app.use('/user', express_app)

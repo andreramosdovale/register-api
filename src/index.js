@@ -18,7 +18,8 @@ module.exports = app => {
         try {
             const UNCHECKED_PATHS = [
                 '/user/login',
-                '/user/logout'
+                '/user/logout',
+                '/user/resetPassword'
             ];
 
             const CHECKED_METHODS = [
@@ -38,7 +39,7 @@ module.exports = app => {
                         if (objeto) {
                             next()
                         } else {
-                            throw 'Login ou senha incorretos.'
+                            throw 'Email ou senha incorretos.'
                         }
                     })
                 })

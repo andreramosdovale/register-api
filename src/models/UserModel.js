@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 const app = require('express')()
 const db = require('../components/db')
+const mailer = require('../components/Mailer')
 app.db = db
 
 class UserModel {
@@ -26,9 +27,9 @@ class UserModel {
         return content.toString()
     }
 
-    static registerUser = async function (login, password) {
+    static registerUser = async function (email, password) {
         let query = {}
-        if(login) query.login = login
+        if(email) query.email = email
         if(password) query.password = password
 
         app.db('users')
@@ -42,10 +43,10 @@ class UserModel {
             })
     }
 
-    static getUserLogin = async function (login) {
+    static getUserEmail = async function (email) {
         return await app.db('users')
-            .select('login', 'password')
-            .where({login: login})
+            .select('email', 'password')
+            .where({email: email})
             .then(data => {
                 return data[0]
             }).catch(err => {
@@ -54,10 +55,22 @@ class UserModel {
             })
     }
 
-    static getUser = async function (token) {
+    static getUserByToken = async function (token) {
         return await app.db('users')
-            .select('login')
+            .select('email')
             .where({ token: token})
+            .then(data => {
+                return data[0]
+            }).catch(err => {
+                app.db.destroy()
+                console.error(err)
+            })
+    }
+
+    static getUser = async function (email) {
+        return await app.db('users')
+            .select('email')
+            .where({ email: email})
             .then(data => {
                 return data[0]
             }).catch(err => {
@@ -69,7 +82,7 @@ class UserModel {
     static getEncryptDataBasePassword = async function (user) {
         return await app.db('users')
             .select('password')
-            .where({login: user.login})
+            .where({email: user.email})
             .then(data => {
                 return data[0]
             }).catch(err => {
@@ -87,10 +100,10 @@ class UserModel {
     }
 
     static deleteUser = async function (token) {
-        const user = await UserModel.getUser(token)
+        const user = await UserModel.getUserByToken(token)
 
         return await app.db('users')
-            .where({login: user.login})
+            .where({email: user.email})
             .del()
             .then(data => {
                 return data[0]
@@ -100,15 +113,31 @@ class UserModel {
             })
     }
 
-    static updateUser = async function (token, newLogin, newPassword) {
-        const user = await UserModel.getUser(token)
+    static updateUserByToken = async function (token, newEmail, newPassword) {
+        const user = await UserModel.getUserByToken(token)
 
         return await app.db('users')
             .update({
-                login: newLogin,
+                email: newEmail,
                 password: newPassword
             })
-            .where({login: user.login})
+            .where({email: user.email})
+            .then(data => {
+                return data[0]
+            }).catch(err => {
+                app.db.destroy()
+                console.error(err)
+            })
+    }
+
+    static updateRandomPassword = async function (email, newPassword) {
+        const newPasswordEncrypted = UserModel.encryptPassword(newPassword)
+
+        return await app.db('users')
+            .update({
+                password: newPasswordEncrypted
+            })
+            .where({email: email})
             .then(data => {
                 return data[0]
             }).catch(err => {
@@ -119,14 +148,14 @@ class UserModel {
 
     static generateToken = async function (data) {
         return jwt.sign({
-            login: data.login,
+            email: data.email,
         }, authSecret, { expiresIn: '1h' })
     }
 
-    static addToken = async function (token, login) {
+    static addToken = async function (token, email) {
         return await app.db('users')
             .update({token: token})
-            .where({login: login})
+            .where({email: email})
             .then(id => {
                 return id
             })
@@ -137,11 +166,11 @@ class UserModel {
     }
 
     static removeToken = async function(token) {
-        const user = await UserModel.getUser(token)
+        const user = await UserModel.getUserByToken(token)
 
         return await app.db('users')
             .update({token: ''})
-            .where({login: user.login})
+            .where({email: user.email})
             .then(id => {
                 return id
             })
@@ -161,6 +190,30 @@ class UserModel {
                 reject(decodedToken)
             }
         })
+    }
+
+    static generateNewRandomPassword = async function () {
+        let codeAlphabet = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9']
+        let newPassword = '';
+
+        for (let i = 0; i < 8; i++) {
+            newPassword += codeAlphabet[Math.floor(Math.random() * codeAlphabet.length)];
+        }
+
+        return newPassword
+    }
+
+    static sendEmail = async function (email) {
+        const user = await UserModel.getUser(email)
+        const newRandomPassword = await UserModel.generateNewRandomPassword();
+
+        return await mailer.sendEmail(user.email, newRandomPassword)
+            .then(data => {
+                return data
+            })
+            .catch(err => {
+                return console.error(err)
+            })
     }
 
 }
