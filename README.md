@@ -7,7 +7,7 @@
     <li>Criação de novos usuários</li>
     <li>Visualização dos dados salvos</li>
     <li>Alteração dos dados salvos</li>
-    <li>Exclusão dos dados salvos (Em desenvolvimento)</li>
+    <li>Exclusão dos dados salvos</li>
     <li>Envio de uma nova senha aleatória por email (Em desenvolvimento)</li>
     <li>Criação de token JWT</li>
 </ul>
